@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Athletic Store - Premium Sportswear</title>
+        <link rel="stylesheet" href="css/style.css">
+        <link rel="stylesheet" href="css/responsive.css">
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    </head>
+<body>
+    <nav class="main-nav">
+        <div class="nav-container">
+            <a href="index.html" class="brand-logo">
+                <img src="assets/images/logo.png" alt="Athletic Store">
+            </a>
+            <ul class="nav-links">
+                <li><a href="index.html">New Releases</a></li>
+                <li><a href="products.html">Men</a></li>
+                <li><a href="products.html">Women</a></li>
+                <li><a href="products.html">Kids</a></li>
+                <li><a href="collections.html">Collections</a></li>
+            </ul>
+            <div class="nav-icons">
+                <a href="search.html"><i class="fas fa-search"></i></a>
+                <a href="cart.html" class="cart-icon">
+                    <i class="fas fa-shopping-bag"></i>
+                    <span class="cart-counter">0</span>
+                </a>
+            </div>
+        </div>
+    </nav>
+
+
+    <main class="checkout-container">
+        <div class="checkout-form">
+            <h1>Checkout</h1>
+            <form id="checkoutForm" onsubmit="handleCheckout(event)">
+                <!-- Form fields from previous example -->
+            </form>
+        </div>
+        <div class="order-summary">
+            <!-- Order summary -->
+        </div>
+    </main>
+    <footer class="main-footer">
+        <div class="footer-container">
+            <!-- Footer content from previous example -->
+        </div>
+    </footer>
+    <script src="js/cart.js"></script>
+    <script src="js/checkout.js"></script>
+</body>
+</html>
