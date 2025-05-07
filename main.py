@@ -16,124 +16,97 @@ class CosmicMechanicsApp:
     def __init__(self, root):
         self.root = root
         self.root.title("Stellar Garage Manager")
-        self.root.geometry("1400x900")
-
-        # Configure cosmic style
+        self.root.state('zoomed')  # Start maximized
         self.style = ttk.Style(theme='darkly')
         self._configure_styles()
-
-        # Initialize database
         self.conn = sqlite3.connect('cosmic_garage.db')
         self.create_tables()
-
-        # Create main interface
         self.create_widgets()
-
-        # Start animations
         self.animate_header()
 
     def _configure_styles(self):
-        # Custom cosmic theme
-        self.style.configure('Cosmic.TButton', font=('Orbitron', 12),
-                             bordercolor='#00f3ff', focusthickness=3)
-        self.style.configure('Cosmic.TLabel', font=('Orbitron', 14),
-                             foreground='#00f3ff')
-        self.style.configure('Header.TLabel', font=('Orbitron', 24, 'bold'),
-                             foreground='#ff00ff')
-
-    def create_tables(self):
-        cursor = self.conn.cursor()
-        cursor.execute('''CREATE TABLE IF NOT EXISTS customers
-                        (id INTEGER PRIMARY KEY,
-                        name TEXT,
-                        car_model TEXT,
-                        vin TEXT,
-                        issue TEXT,
-                        date_added TEXT)''')
-
-        cursor.execute('''CREATE TABLE IF NOT EXISTS repairs
-                        (id INTEGER PRIMARY KEY,
-                        vehicle TEXT,
-                        status TEXT,
-                        start_date TEXT,
-                        end_date TEXT)''')
-
-        cursor.execute('''CREATE TABLE IF NOT EXISTS inventory
-                        (id INTEGER PRIMARY KEY,
-                        part_name TEXT,
-                        quantity INTEGER,
-                        last_ordered TEXT)''')
-        self.conn.commit()
+        # Base font configuration
+        self.style.configure('.', font=('Orbitron', 16))
+        self.style.configure('Header.TLabel', font=('Orbitron', 28, 'bold'))
+        self.style.configure('TButton', font=('Orbitron', 18))
+        self.style.configure('Treeview.Heading', font=('Orbitron', 18, 'bold'))
+        self.style.configure('Treeview', font=('Orbitron', 16), rowheight=35)
+        self.style.configure('TEntry', font=('Orbitron', 16))
 
     def create_widgets(self):
-        # Main container with cosmic background
-        self.bg_image = ImageTk.PhotoImage(Image.open('space_bg.jpg').resize((1400, 900)))
+        # Main container with responsive layout
+        self.bg_image = ImageTk.PhotoImage(Image.open('space_bg.jpg').resize(
+            (self.root.winfo_screenwidth(), self.root.winfo_screenheight())))
         bg_label = ttk.Label(self.root, image=self.bg_image)
         bg_label.place(x=0, y=0, relwidth=1, relheight=1)
 
-        # Animated header
+        # Header with responsive padding
         self.header = ttk.Label(self.root, text="🚀 COSMIC VEHICLE WORKSHOP 🪐",
                                 style='Header.TLabel')
-        self.header.pack(pady=30)
+        self.header.pack(pady=(30, 20))
 
-        # Main notebook interface
+        # Responsive notebook
         self.notebook = ttk.Notebook(self.root)
-        self.notebook.pack(fill=tk.BOTH, expand=True)
+        self.notebook.pack(fill=tk.BOTH, expand=True, padx=20, pady=10)
 
-        # Create tabs
+        # Create tabs with improved spacing
         self._create_customer_tab()
         self._create_repairs_tab()
         self._create_inventory_tab()
+
+        # Configure grid weights for resizing
+        self.root.grid_rowconfigure(0, weight=1)
+        self.root.grid_columnconfigure(0, weight=1)
 
     def _create_customer_tab(self):
         tab = ttk.Frame(self.notebook)
         self.notebook.add(tab, text="New Customers")
 
         form_frame = ttk.Frame(tab)
-        form_frame.pack(pady=20)
+        form_frame.pack(pady=30, padx=30, fill=tk.BOTH, expand=True)
 
         entries = [
-            ('Name', 'customer_name'),
-            ('Car Model', 'car_model'),
-            ('VIN', 'vin'),
-            ('Issue', 'issue')
+            ('Name:', 'customer_name'),
+            ('Car Model:', 'car_model'),
+            ('VIN:', 'vin'),
+            ('Issue:', 'issue')
         ]
 
         self.entries = {}
         for label, key in entries:
             frame = ttk.Frame(form_frame)
-            frame.pack(pady=10)
-            ttk.Label(frame, text=label, style='Cosmic.TLabel').pack(side=tk.LEFT)
+            frame.pack(pady=15, fill=tk.X)
+            ttk.Label(frame, text=label, style='TLabel', width=15).pack(side=tk.LEFT, padx=10)
             entry = ttk.Entry(frame, width=30)
-            entry.pack(side=tk.RIGHT, padx=10)
+            entry.pack(side=tk.RIGHT, expand=True, fill=tk.X, padx=10)
             self.entries[key] = entry
 
         add_btn = ttk.Button(form_frame, text="Add Customer",
-                             style='Cosmic.TButton',
-                             command=self.add_customer)
-        add_btn.pack(pady=20)
+                             style='TButton', command=self.add_customer)
+        add_btn.pack(pady=30)
 
     def _create_repairs_tab(self):
         tab = ttk.Frame(self.notebook)
         self.notebook.add(tab, text="Active Repairs")
 
-        # Repair list with scrollbar
+        # Repair list with improved column widths
         self.repairs_tree = ttk.Treeview(tab, columns=('Status', 'Start Date'),
                                          show='headings')
-        self.repairs_tree.heading('#0', text='Vehicle')
-        self.repairs_tree.heading('Status', text='Status')
-        self.repairs_tree.heading('Start Date', text='Start Date')
+        self.repairs_tree.heading('#0', text='Vehicle', anchor=tk.W)
+        self.repairs_tree.column('#0', width=400, minwidth=300)
+        self.repairs_tree.heading('Status', text='Status', anchor=tk.W)
+        self.repairs_tree.column('Status', width=200, minwidth=150)
+        self.repairs_tree.heading('Start Date', text='Start Date', anchor=tk.W)
+        self.repairs_tree.column('Start Date', width=300, minwidth=250)
         self.repairs_tree.pack(fill=tk.BOTH, expand=True, padx=20, pady=20)
 
-        # Controls
+        # Button container with responsive layout
         btn_frame = ttk.Frame(tab)
-        btn_frame.pack(pady=10)
-        ttk.Button(btn_frame, text="Mark Repaired", style='Cosmic.TButton',
-                   command=self.mark_repaired).pack(side=tk.LEFT, padx=5)
-        ttk.Button(btn_frame, text="Mark Pending", style='Cosmic.TButton',
-                   command=self.mark_pending).pack(side=tk.LEFT, padx=5)
-
-        self.update_repairs_display()
+        btn_frame.pack(pady=20)
+        ttk.Button(btn_frame, text="Mark Repaired", command=self.mark_repaired) \
+            .pack(side=tk.LEFT, padx=20, ipadx=20, ipady=10)
+        ttk.Button(btn_frame, text="Mark Pending", command=self.mark_pending) \
+            .pack(side=tk.LEFT, padx=20, ipadx=20, ipady=10)
 
     def _create_inventory_tab(self):
         tab = ttk.Frame(self.notebook)
@@ -154,28 +127,228 @@ class CosmicMechanicsApp:
         self.update_inventory_display()
 
     # Database operations
+    def create_tables(self):
+        """Create or upgrade database tables"""
+        cursor = self.conn.cursor()
+
+        # Create customers table
+        cursor.execute('''CREATE TABLE IF NOT EXISTS customers
+                        (id INTEGER PRIMARY KEY AUTOINCREMENT,
+                         name TEXT,
+                         car_model TEXT,
+                         vin TEXT UNIQUE,
+                         issue TEXT,
+                         date_added TEXT)''')
+
+        # Create repairs table with new schema
+        cursor.execute('''CREATE TABLE IF NOT EXISTS repairs
+                        (id INTEGER PRIMARY KEY AUTOINCREMENT,
+                         vehicle TEXT,
+                         status TEXT,
+                         start_date TEXT,
+                         end_date TEXT,
+                         issue TEXT,
+                         assigned_mechanic TEXT,
+                         priority TEXT,
+                         estimated_hours REAL)''')
+
+        # Create inventory table
+        cursor.execute('''CREATE TABLE IF NOT EXISTS inventory
+                        (part_name TEXT PRIMARY KEY,
+                         quantity INTEGER,
+                         last_ordered TEXT)''')
+
+        # Add any missing columns to repairs table
+        cursor.execute('PRAGMA table_info(repairs)')
+        existing_columns = [col[1] for col in cursor.fetchall()]
+        required_columns = ['issue', 'assigned_mechanic', 'priority', 'estimated_hours']
+
+        for col in required_columns:
+            if col not in existing_columns:
+                cursor.execute(f'ALTER TABLE repairs ADD COLUMN {col} TEXT')
+
+        self.conn.commit()
+    def _create_repairs_tab(self):
+        """Create repairs tab with expanded columns and controls"""
+        tab = ttk.Frame(self.notebook)
+        self.notebook.add(tab, text="Active Repairs")
+
+        # Expanded Treeview columns
+        self.repairs_tree = ttk.Treeview(tab, columns=(
+            'Status', 'Start Date', 'Issue', 'Mechanic', 'Priority', 'Hours'
+        ), show='headings')
+
+        # Configure columns
+        columns = [
+            ('#0', 'Vehicle', 300),
+            ('Status', 'Status', 120),
+            ('Start Date', 'Start Date', 180),
+            ('Issue', 'Issue', 400),
+            ('Mechanic', 'Mechanic', 150),
+            ('Priority', 'Priority', 100),
+            ('Hours', 'Est. Hours', 100)
+        ]
+
+        for col_id, heading, width in columns:
+            if col_id == '#0':
+                self.repairs_tree.heading(col_id, text=heading, anchor=tk.W)
+                self.repairs_tree.column(col_id, width=width, minwidth=width - 50)
+            else:
+                self.repairs_tree.heading(col_id, text=heading, anchor=tk.W)
+                self.repairs_tree.column(col_id, width=width, minwidth=width - 50)
+
+        self.repairs_tree.pack(fill=tk.BOTH, expand=True, padx=20, pady=20)
+
+        # New button container
+        btn_frame = ttk.Frame(tab)
+        btn_frame.pack(pady=20)
+
+        controls = [
+            ('Mark Repaired', self.mark_repaired),
+            ('Mark Pending', self.mark_pending),
+            ('Edit Repair', self.edit_repair),
+            ('Add Notes', self.add_repair_notes)
+        ]
+
+        for text, cmd in controls:
+            ttk.Button(btn_frame, text=text, command=cmd,
+                       style='TButton').pack(side=tk.LEFT, padx=10)
+
+    def update_repairs_display(self):
+        """Update repairs list with formatted dates and enhanced info"""
+        self.repairs_tree.delete(*self.repairs_tree.get_children())
+        cursor = self.conn.cursor()
+        query = '''SELECT vehicle, status, start_date, issue,
+                            assigned_mechanic, priority, estimated_hours
+                     FROM repairs'''
+
+        for row in cursor.execute(query):
+            # Format start date
+            try:
+                dt = datetime.datetime.fromisoformat(row[2])
+                formatted_date = dt.strftime('%Y-%m-%d %H:%M')
+            except:
+                formatted_date = row[2]
+
+            self.repairs_tree.insert('', 'end', text=row[0],
+                                     values=(row[1], formatted_date, row[3], row[4], row[5], row[6]))
+
+    def edit_repair(self):
+        """Edit repair details dialog"""
+        selected = self.repairs_tree.selection()
+        if not selected:
+            return
+
+        vehicle = self.repairs_tree.item(selected[0])['text']
+        cursor = self.conn.cursor()
+        cursor.execute('''SELECT * FROM repairs WHERE vehicle=?''', (vehicle,))
+        repair_data = cursor.fetchone()
+
+        edit_win = tk.Toplevel(self.root)
+        edit_win.title("Edit Repair Details")
+
+        # Form fields
+        fields = [
+            ('Assigned Mechanic:', 'assigned_mechanic', 'entry', repair_data[6]),
+            ('Priority:', 'priority', 'combo', ['Low', 'Medium', 'High'], repair_data[7]),
+            ('Estimated Hours:', 'hours', 'entry', repair_data[8])
+        ]
+
+        entries = {}
+        for i, (label, key, type_, *rest) in enumerate(fields):
+            ttk.Label(edit_win, text=label).grid(row=i, column=0, padx=10, pady=5, sticky='e')
+            if type_ == 'entry':
+                entry = ttk.Entry(edit_win)
+                entry.insert(0, rest[0] if rest[0] else "")
+                entry.grid(row=i, column=1, padx=10, pady=5)
+                entries[key] = entry
+            elif type_ == 'combo':
+                combo = ttk.Combobox(edit_win, values=rest[0])
+                combo.set(rest[1] if rest[1] else "Medium")
+                combo.grid(row=i, column=1, padx=10, pady=5)
+                entries[key] = combo
+
+        # Save handler
+        def save_changes():
+            updates = (
+                entries['assigned_mechanic'].get(),
+                entries['priority'].get(),
+                float(entries['hours'].get() or 0),
+                vehicle
+            )
+            cursor.execute('''UPDATE repairs SET
+                              assigned_mechanic=?,
+                              priority=?,
+                              estimated_hours=?
+                            WHERE vehicle=?''', updates)
+            self.conn.commit()
+            self.update_repairs_display()
+            edit_win.destroy()
+
+        ttk.Button(edit_win, text="Save Changes", command=save_changes) \
+            .grid(row=len(fields), columnspan=2, pady=10)
+
+    def add_repair_notes(self):
+        """Add detailed notes to repair"""
+        selected = self.repairs_tree.selection()
+        if not selected:
+            return
+
+        vehicle = self.repairs_tree.item(selected[0])['text']
+        cursor = self.conn.cursor()
+        cursor.execute('SELECT issue FROM repairs WHERE vehicle=?', (vehicle,))
+        current_issue = cursor.fetchone()[0]
+
+        note_win = tk.Toplevel(self.root)
+        note_win.title("Repair Notes")
+
+        ttk.Label(note_win, text="Detailed Repair Notes:").pack(pady=10)
+        text_area = tk.Text(note_win, width=60, height=15,
+                            font=('Orbitron', 14))
+        text_area.insert('1.0', current_issue)
+        text_area.pack(padx=20, pady=10)
+
+        def save_notes():
+            cursor.execute('''UPDATE repairs SET issue=?
+                             WHERE vehicle=?''',
+                           (text_area.get('1.0', tk.END).strip(), vehicle))
+            self.conn.commit()
+            self.update_repairs_display()
+            note_win.destroy()
+
+        ttk.Button(note_win, text="Save Notes", command=save_notes) \
+            .pack(pady=10)
+
     def add_customer(self):
         data = {k: v.get() for k, v in self.entries.items()}
         if all(data.values()):
             cursor = self.conn.cursor()
-            cursor.execute('''INSERT INTO customers 
-                            (name, car_model, vin, issue, date_added)
-                            VALUES (?, ?, ?, ?, ?)''',
-                           (data['customer_name'], data['car_model'], data['vin'],
-                            data['issue'], datetime.datetime.now().isoformat()))
+            try:
+                # Insert customer
+                cursor.execute('''INSERT INTO customers 
+                                (name, car_model, vin, issue, date_added)
+                                VALUES (?, ?, ?, ?, ?)''',
+                               (data['customer_name'], data['car_model'],
+                                data['vin'], data['issue'],
+                                datetime.datetime.now().isoformat()))
 
-            cursor.execute('''INSERT INTO repairs 
-                            (vehicle, status, start_date)
-                            VALUES (?, ?, ?)''',
-                           (f"{data['car_model']} ({data['vin']})",
-                            'Pending', datetime.datetime.now().isoformat()))
-            self.conn.commit()
-            self.update_repairs_display()
-            self.clear_form()
-            self.animate_success()
+                # Insert repair with proper columns
+                cursor.execute('''INSERT INTO repairs 
+                                (vehicle, status, start_date, issue)
+                                VALUES (?, ?, ?, ?)''',
+                               (f"{data['car_model']} ({data['vin']})",
+                                'Pending',
+                                datetime.datetime.now().isoformat(),
+                                data['issue']))
+                self.conn.commit()
+                self.update_repairs_display()
+                self.clear_form()
+                self.animate_success()
+            except sqlite3.Error as e:
+                self.conn.rollback()
+                messagebox.showerror("Database Error", f"Error: {str(e)}")
         else:
-            messagebox.showwarning("Input Error", "Please fill all fields")
-
+            messagebox.showwarning("Input Error", "All fields required")
     def update_repairs_display(self):
         self.repairs_tree.delete(*self.repairs_tree.get_children())
         cursor = self.conn.cursor()
@@ -219,6 +392,15 @@ class CosmicMechanicsApp:
             self.conn.commit()
             self.update_repairs_display()
 
+    def mark_pending(self):
+        selected = self.repairs_tree.selection()
+        if selected:
+            vehicle = self.repairs_tree.item(selected[0])['text']
+            cursor = self.conn.cursor()
+            cursor.execute('''UPDATE repairs SET status=? WHERE vehicle=?''',
+                           ('Pending', vehicle))
+            self.conn.commit()
+            self.update_repairs_display()
     def order_parts(self):
         cursor = self.conn.cursor()
         ordered = []
@@ -239,5 +421,6 @@ class CosmicMechanicsApp:
 
 if __name__ == "__main__":
     root = ttk.Window()
+    root.minsize(1000, 700)  # Set minimum window size
     app = CosmicMechanicsApp(root)
     root.mainloop()
