@@ -370,19 +370,64 @@ class CosmicApp:
         tab = ttk.Frame(self.notebook)
         self.notebook.add(tab, text="Schedules")
 
-        self.schedule_tree = ttk.Treeview(tab, columns=('Mechanic', 'Start', 'End', 'Task'), show='headings')
-        for col in ['Mechanic', 'Start', 'End', 'Task']:
-            self.schedule_tree.heading(col, text=col)
-            self.schedule_tree.column(col, width=200)
+        # Create a larger calendar-like grid for the month
+        calendar_frame = ttk.Frame(tab)
+        calendar_frame.pack(fill=tk.BOTH, expand=True, padx=40, pady=40)
+
+        days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']
+
+        # Create header row for days
+        for col, day in enumerate(days):
+            ttk.Label(calendar_frame, text=day, anchor='center', width=20).grid(row=0, column=col, padx=10, pady=10)
+
+        # Generate the current month's calendar
+        import calendar
+        year, month = datetime.datetime.now().year, datetime.datetime.now().month
+        month_days = calendar.monthcalendar(year, month)
+
+        for row, week in enumerate(month_days, start=1):
+            for col, day in enumerate(week):
+                cell = ttk.Frame(calendar_frame, relief='ridge', borderwidth=2, width=150, height=100)
+                cell.grid(row=row, column=col, padx=5, pady=5, sticky='nsew')
+                if day != 0:
+                    ttk.Label(cell, text=str(day), anchor='ne', font=('Orbitron', 12)).pack(anchor='ne', padx=5, pady=5)
+
+        # Populate the calendar with existing schedules
+        self.update_monthly_calendar_display(calendar_frame, days, month_days, year, month)
+
+        # Correctly initialize the schedule tree
+        self.schedule_tree = ttk.Treeview(tab, columns=('Mechanic', 'Start Time', 'End Time', 'Task'), show='headings')
+        self.schedule_tree.heading('Mechanic', text='Mechanic')
+        self.schedule_tree.heading('Start Time', text='Start Time')
+        self.schedule_tree.heading('End Time', text='End Time')
+        self.schedule_tree.heading('Task', text='Task')
         self.schedule_tree.pack(fill=tk.BOTH, expand=True, padx=20, pady=20)
 
+        # Add buttons for schedule management
         btn_frame = ttk.Frame(tab)
         btn_frame.pack(pady=10)
         ttk.Button(btn_frame, text="Add Schedule", command=self.add_schedule).pack(side=tk.LEFT, padx=5)
-        ttk.Button(btn_frame, text="Edit Schedule", command=self.edit_schedule).pack(side=tk.LEFT, padx=5)
         ttk.Button(btn_frame, text="Delete Schedule", command=self.delete_schedule).pack(side=tk.LEFT, padx=5)
 
+        # Update schedule display method
         self.update_schedule_display()
+
+    def update_monthly_calendar_display(self, calendar_frame, days, month_days, year, month):
+        cursor = self.conn.cursor()
+        cursor.execute('SELECT mechanic, start_time, end_time, task FROM schedules')
+        schedules = cursor.fetchall()
+
+        for schedule in schedules:
+            mechanic, start_time, end_time, task = schedule
+            start_date = datetime.datetime.strptime(start_time.split(' ')[0], '%Y-%m-%d')
+            day = start_date.day
+
+            for row, week in enumerate(month_days, start=1):
+                if day in week:
+                    col = week.index(day)
+                    cell = calendar_frame.grid_slaves(row=row, column=col)[0]
+                    label = ttk.Label(cell, text=f"{mechanic}\n{task}", anchor='center', background='lightblue')
+                    label.pack(expand=True, fill=tk.BOTH)
 
     def _create_my_schedule_tab(self):
         tab = ttk.Frame(self.notebook)
@@ -418,13 +463,72 @@ class CosmicApp:
         tab = ttk.Frame(self.notebook)
         self.notebook.add(tab, text="Inventory")
 
-        self.inventory_tree = ttk.Treeview(tab, columns=('Quantity', 'Last Ordered'), show='headings')
+        self.inventory_tree = ttk.Treeview(tab, columns=('Quantity', 'Last Ordered', 'Price', 'Supplier'),
+                                           show='headings')
         self.inventory_tree.heading('#0', text='Part')
         self.inventory_tree.heading('Quantity', text='Quantity')
         self.inventory_tree.heading('Last Ordered', text='Last Ordered')
+        self.inventory_tree.heading('Price', text='Price')
+        self.inventory_tree.heading('Supplier', text='Supplier')
         self.inventory_tree.pack(fill=tk.BOTH, expand=True, padx=20, pady=20)
 
         ttk.Button(tab, text="Order Parts", command=self.order_parts).pack(pady=10)
+        ttk.Button(tab, text="Ship Parts", command=self.ship_parts).pack(pady=10)
+        self.update_inventory_display()
+
+        # Add essential mechanic parts if not already present
+        self.add_essential_parts()
+
+    def add_essential_parts(self):
+        essential_parts = [
+            ('Spark Plugs', 15, 5.99),
+            ('Brake Pads', 10, 25.50),
+            ('Oil Filter', 20, 7.99),
+            ('Timing Belt', 8, 45.00),
+            ('Air Filter', 12, 12.50),
+            ('Fuel Pump', 5, 89.99),
+            ('Alternator', 7, 150.00),
+            ('Battery', 10, 120.00),
+            ('Radiator', 6, 200.00),
+            ('Clutch Kit', 4, 250.00),
+            ('Shock Absorbers', 8, 75.00),
+            ('Headlights', 10, 30.00),
+            ('Wiper Blades', 15, 15.00),
+            ('Engine Oil', 25, 40.00),
+            ('Transmission Fluid', 20, 35.00),
+            ('Brake Rotors', 10, 60.00),
+            ('Wheel Bearings', 8, 50.00),
+            ('Control Arms', 6, 80.00),
+            ('Ball Joints', 10, 20.00),
+            ('Tie Rod Ends', 12, 25.00),
+            ('Drive Belts', 15, 18.00),
+            ('Water Pump', 5, 70.00),
+            ('Thermostat', 10, 15.00),
+            ('Ignition Coils', 8, 45.00),
+            ('Starter Motor', 5, 130.00),
+            ('Exhaust Muffler', 6, 90.00),
+            ('Catalytic Converter', 4, 300.00),
+            ('Oxygen Sensor', 10, 50.00),
+            ('Fuel Injectors', 8, 100.00),
+            ('Turbocharger', 3, 500.00),
+            ('Timing Chain', 7, 85.00),
+            ('Camshaft', 4, 250.00),
+            ('Crankshaft', 3, 400.00),
+            ('Piston Rings', 10, 35.00),
+            ('Valve Cover Gasket', 12, 20.00),
+            ('Cylinder Head', 2, 600.00),
+            ('EGR Valve', 5, 120.00),
+            ('Mass Airflow Sensor', 6, 150.00),
+            ('Throttle Body', 4, 200.00)
+        ]
+
+        cursor = self.conn.cursor()
+        for part, quantity, price in essential_parts:
+            cursor.execute('''INSERT OR IGNORE INTO inventory (part_name, quantity, last_ordered) VALUES (?, ?, ?)''',
+                           (part, quantity, None))
+            cursor.execute('''ALTER TABLE inventory ADD COLUMN price REAL''')
+            cursor.execute('''UPDATE inventory SET price = ? WHERE part_name = ?''', (price, part))
+        self.conn.commit()
         self.update_inventory_display()
 
     # ================== CORE FUNCTIONALITY ==================
@@ -514,6 +618,7 @@ class CosmicApp:
         task.grid(row=3, column=1, padx=5, pady=5)
 
         def save():
+            cursor = self.conn.cursor()
             cursor.execute('''INSERT INTO schedules 
                             (mechanic, start_time, end_time, task)
                             VALUES (?, ?, ?, ?)''',
@@ -528,10 +633,9 @@ class CosmicApp:
         selected = self.schedule_tree.selection()
         if selected:
             item = self.schedule_tree.item(selected[0])
-            mechanic, start = item['values'][0], item['values'][1]
+            mechanic, start_time = item['values'][0], item['values'][1]
             cursor = self.conn.cursor()
-            cursor.execute('DELETE FROM schedules WHERE mechanic=? AND start_time=?',
-                           (mechanic, start))
+            cursor.execute('DELETE FROM schedules WHERE mechanic=? AND start_time=?', (mechanic, start_time))
             self.conn.commit()
             self.update_schedule_display()
 
@@ -781,6 +885,43 @@ class CosmicApp:
 
     def __del__(self):
         self.conn.close()
+
+    def ship_parts(self):
+        selected = self.inventory_tree.selection()
+        if not selected:
+            messagebox.showwarning("No Selection", "Please select a part to ship.")
+            return
+
+        part = self.inventory_tree.item(selected[0])['text']
+        quantity = self.inventory_tree.item(selected[0])['values'][0]
+
+        def confirm_ship():
+            try:
+                ship_qty = int(ship_qty_entry.get())
+                if ship_qty <= 0 or ship_qty > quantity:
+                    raise ValueError("Invalid quantity")
+
+                cursor = self.conn.cursor()
+                cursor.execute('''UPDATE inventory SET quantity = quantity - ? WHERE part_name = ?''',
+                               (ship_qty, part))
+                self.conn.commit()
+                self.update_inventory_display()
+                messagebox.showinfo("Success", f"Shipped {ship_qty} units of {part}.")
+                ship_window.destroy()
+            except ValueError:
+                messagebox.showerror("Error", "Please enter a valid quantity.")
+
+        ship_window = tk.Toplevel(self.root)
+        ship_window.title("Ship Parts")
+
+        ttk.Label(ship_window, text=f"Part: {part}").pack(pady=5)
+        ttk.Label(ship_window, text=f"Available Quantity: {quantity}").pack(pady=5)
+
+        ttk.Label(ship_window, text="Quantity to Ship:").pack(pady=5)
+        ship_qty_entry = ttk.Entry(ship_window)
+        ship_qty_entry.pack(pady=5)
+
+        ttk.Button(ship_window, text="Confirm", command=confirm_ship).pack(pady=10)
 
 
 if __name__ == "__main__":
