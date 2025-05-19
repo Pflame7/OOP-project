@@ -6,32 +6,33 @@ import ttkbootstrap as ttk
 from ttkbootstrap.constants import *
 import datetime
 
-# Terran color palette
 # Brighter Terran color palette
-TERRAN_BG = "#22304a"         # Brighter than #1b263b
-TERRAN_ACCENT = "#4a6fa5"     # Brighter than #415a77
-TERRAN_HIGHLIGHT = "#00cfff"  # Brighter accent
-TERRAN_TEXT = "#f5f6fa"       # Brighter text
-TERRAN_CELL_BG = "#cccccc"    # For calendar cells
-TERRAN_CELL_HIGHLIGHT = "#5ecfff"
-TERRAN_CELL_DONE = "#a8ffb0"
-TERRAN_CELL_LATE = "#ffe066"
+TERRAN_BG = "#22304a"
+TERRAN_ACCENT = "#4a6fa5"
+TERRAN_HIGHLIGHT = "#00cfff"
+TERRAN_TEXT = "#222"  # Use dark text for contrast
+CALENDAR_CELL_GRAY = "#e0e0e0"
+CALENDAR_CELL_TODAY = "#b0b0b0"
+CALENDAR_CELL_DONE = "#a8ffb0"
+CALENDAR_CELL_LATE = "#ffe066"
+CALENDAR_CELL_TASK = "#5ecfff"
+CALENDAR_CELL_SERVICE = "#ffd580"
 
 def add_custom_titlebar(window, title="Terran Garage Manager", exit_callback=None):
     window.overrideredirect(True)
-    titlebar = tk.Frame(window, bg="#415a77", relief="raised", bd=0, highlightthickness=0)
+    titlebar = tk.Frame(window, bg=TERRAN_ACCENT, relief="raised", bd=0, highlightthickness=0)
     titlebar.pack(fill=tk.X, side=tk.TOP)
-    title_label = tk.Label(titlebar, text=title, bg="#415a77", fg="#e0e1dd", font=("Orbitron", 14, "bold"))
+    title_label = tk.Label(titlebar, text=title, bg=TERRAN_ACCENT, fg=TERRAN_TEXT, font=("Orbitron", 14, "bold"))
     title_label.pack(side=tk.LEFT, padx=10, pady=2)
     exit_btn = tk.Button(
-        titlebar, text="✕", bg="#415a77", fg="#e0e1dd", borderwidth=0, font=("Arial", 14, "bold"),
+        titlebar, text="✕", bg=TERRAN_ACCENT, fg=TERRAN_TEXT, borderwidth=0, font=("Arial", 14, "bold"),
         activebackground="#b22222", activeforeground="#fff",
         command=exit_callback if exit_callback else window.quit
     )
     exit_btn.pack(side=tk.RIGHT, padx=(0, 2), pady=2)
     min_btn = tk.Button(
-        titlebar, text="—", bg="#415a77", fg="#e0e1dd", borderwidth=0, font=("Arial", 14, "bold"),
-        activebackground="#1b263b", activeforeground="#00b4d8",
+        titlebar, text="—", bg=TERRAN_ACCENT, fg=TERRAN_TEXT, borderwidth=0, font=("Arial", 14, "bold"),
+        activebackground=TERRAN_BG, activeforeground=TERRAN_HIGHLIGHT,
         command=lambda: window.iconify()
     )
     min_btn.pack(side=tk.RIGHT, padx=(0, 2), pady=2)
@@ -48,7 +49,7 @@ def add_custom_titlebar(window, title="Terran Garage Manager", exit_callback=Non
         window.geometry(f"+{new_x}+{new_y}")
     titlebar.bind("<ButtonPress-1>", start_move)
     titlebar.bind("<B1-Motion>", do_move)
-    spacer = tk.Frame(window, height=16, bg="#1b263b")
+    spacer = tk.Frame(window, height=16, bg=TERRAN_BG)
     spacer.pack(fill=tk.X)
 
 class CosmicApp:
@@ -67,14 +68,14 @@ class CosmicApp:
             self.root.configure(bg=TERRAN_BG)
 
         self._configure_styles()
-        self.cal_year = datetime.datetime.now().year
-        self.cal_month = datetime.datetime.now().month
+        self.cal_year = 2025  # Default to year 2025
+        self.cal_month = 1
         self.create_widgets()
         self.animate_header()
 
     def _configure_styles(self):
         self.style.configure('.', font=('Orbitron', 14))
-        self.style.configure('Header.TLabel', font=('Orbitron', 28, 'bold'))
+        self.style.configure('Header.TLabel', font=('Orbitron', 28, 'bold'), background=TERRAN_ACCENT, foreground=TERRAN_TEXT)
         self.style.configure('TButton', font=('Orbitron', 14))
         self.style.configure('Treeview.Heading', font=('Orbitron', 16, 'bold'))
         self.style.configure('Treeview', font=('Orbitron', 14), rowheight=35)
@@ -84,9 +85,7 @@ class CosmicApp:
         self.header = ttk.Label(
             self.root,
             text="🔧 VEHICLE WORKSHOP ⚙️",
-            style='Header.TLabel',
-            background=TERRAN_ACCENT,
-            foreground=TERRAN_TEXT
+            style='Header.TLabel'
         )
         self.header.pack(pady=(30, 10), fill='x')
 
@@ -218,6 +217,47 @@ class CosmicApp:
     def open_add_schedule_dialog(self):
         self.add_schedule(mechanic=self.selected_mechanic.get())
 
+    def add_schedule(self, mechanic, tab=None):
+        win = tk.Toplevel(self.root)
+        win.title("Add Schedule")
+
+        tk.Label(win, text="Task:").grid(row=0, column=0, padx=10, pady=5, sticky='e')
+        task_entry = tk.Entry(win)
+        task_entry.grid(row=0, column=1, padx=10, pady=5)
+
+        tk.Label(win, text="Start (YYYY-MM-DD HH:MM):").grid(row=1, column=0, padx=10, pady=5, sticky='e')
+        start_entry = tk.Entry(win)
+        start_entry.grid(row=1, column=1, padx=10, pady=5)
+
+        tk.Label(win, text="End (YYYY-MM-DD HH:MM):").grid(row=2, column=0, padx=10, pady=5, sticky='e')
+        end_entry = tk.Entry(win)
+        end_entry.grid(row=2, column=1, padx=10, pady=5)
+
+        def save():
+            task = task_entry.get().strip()
+            start = start_entry.get().strip()
+            end = end_entry.get().strip()
+            if not (task and start and end):
+                tk.messagebox.showerror("Error", "All fields are required.")
+                return
+            try:
+                cursor = self.conn.cursor()
+                cursor.execute(
+                    '''INSERT INTO schedules (mechanic, start_time, end_time, task, status)
+                       VALUES (?, ?, ?, ?, ?)''',
+                    (mechanic, start, end, task, 'pending')
+                )
+                self.conn.commit()
+                if tab:
+                    self.update_monthly_calendar_display(tab=tab)
+                else:
+                    self.update_monthly_calendar_display()
+                win.destroy()
+            except Exception as e:
+                tk.messagebox.showerror("Error", f"Failed to add schedule: {e}")
+
+        tk.Button(win, text="Save", command=save).grid(row=3, columnspan=2, pady=10)
+
     def _create_my_schedule_tab(self):
         tab = ttk.Frame(self.notebook)
         self.notebook.add(tab, text="My Schedule")
@@ -264,7 +304,6 @@ class CosmicApp:
         month_days = calendar.monthcalendar(year, month)
         days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
 
-        # Choose the correct frame and label
         if tab and hasattr(self, 'my_calendar_frame'):
             cal_frame = self.my_calendar_frame
             for widget in cal_frame.winfo_children():
@@ -281,40 +320,54 @@ class CosmicApp:
             if not mechanic:
                 return
 
-        # Brighter calendar background
-        cal_frame.configure(style="Bright.TFrame")
-        self.style.configure("Bright.TFrame", background=TERRAN_ACCENT)
-
         # Draw day headers
         for col, day in enumerate(days):
-            ttk.Label(cal_frame, text=day, anchor='center', width=18, font=('Orbitron', 12, 'bold'),
-                      background=TERRAN_ACCENT, foreground=TERRAN_HIGHLIGHT, borderwidth=0).grid(row=0, column=col,
-                                                                                                 padx=2, pady=2)
+            tk.Label(cal_frame, text=day, anchor='center', width=18, font=('Orbitron', 12, 'bold'),
+                     bg=TERRAN_ACCENT, fg=TERRAN_HIGHLIGHT, bd=0).grid(row=0, column=col, padx=2, pady=2)
 
-        # Fetch schedules
         cursor = self.conn.cursor()
         start_date = f"{year}-{month:02d}-01"
         end_date = f"{year}-{month:02d}-31"
+        # Fetch schedules
         cursor.execute('''SELECT id, mechanic, start_time, end_time, task, status FROM schedules
-                          WHERE mechanic=? AND date(start_time) BETWEEN ? AND ?''', (mechanic, start_date, end_date))
+                           WHERE mechanic=? AND date(start_time) BETWEEN ? AND ?''', (mechanic, start_date, end_date))
         schedules = cursor.fetchall()
+        # Fetch ALL repairs (services) for this mechanic and month, regardless of status
+        cursor.execute('''SELECT id, assigned_mechanic, start_date, end_date, issue, status FROM repairs
+                          WHERE assigned_mechanic=? AND date(start_date) BETWEEN ? AND ?''',
+                       (mechanic, start_date, end_date))
+        repairs = cursor.fetchall()
+
         sched_map = {}
         now = datetime.now()
+        # Add schedules
         for sid, mech, st, et, task, status in schedules:
             try:
-                day = int(st.split()[0].split('-')[2])
+                day = datetime.strptime(st, "%Y-%m-%d %H:%M").day
             except Exception:
                 continue
-            sched_map.setdefault(day, []).append((sid, st, et, task, status))
+            sched_map.setdefault(day, []).append(('schedule', sid, st, et, task, status))
+        # Add repairs (services)
+        for rid, mech, st, et, issue, status in repairs:
+            try:
+                # Try several formats for start_date
+                if 'T' in st:
+                    day = datetime.strptime(st, "%Y-%m-%dT%H:%M:%S.%f").day
+                elif len(st) > 10:
+                    day = datetime.strptime(st, "%Y-%m-%d %H:%M:%S").day
+                else:
+                    day = datetime.strptime(st, "%Y-%m-%d").day
+            except Exception:
+                continue
+            sched_map.setdefault(day, []).append(('repair', rid, st, et, issue, status))
 
-        # Draw calendar cells
         today = now.day if now.year == year and now.month == month else None
         for row, week in enumerate(month_days, start=1):
             for col, day in enumerate(week):
-                cell_bg = TERRAN_CELL_BG
+                cell_bg = CALENDAR_CELL_GRAY
                 bordercolor = TERRAN_ACCENT
                 if day == today:
-                    cell_bg = TERRAN_HIGHLIGHT
+                    cell_bg = CALENDAR_CELL_TODAY
                     bordercolor = "#fff"
                 cell = tk.Frame(cal_frame, bg=cell_bg, highlightbackground=bordercolor, highlightthickness=2, bd=0)
                 cell.grid(row=row, column=col, padx=2, pady=2, sticky='nsew')
@@ -322,50 +375,58 @@ class CosmicApp:
                 cell.config(width=140, height=90)
                 if day != 0:
                     day_lbl = tk.Label(cell, text=str(day), anchor='ne', font=('Orbitron', 11, 'bold'),
-                                       bg=cell_bg, fg=TERRAN_TEXT)
+                                       bg=cell_bg, fg="#222")
                     day_lbl.pack(anchor='ne', padx=2, pady=2)
                     if day in sched_map:
-                        for sid, st, et, task, status in sched_map[day]:
+                        for entry in sched_map[day]:
+                            entry_type, eid, st, et, desc, status = entry
                             late = False
                             try:
-                                end_dt = datetime.strptime(et, '%Y-%m-%d %H:%M')
-                                if end_dt < now:
-                                    late = True
+                                if et:
+                                    end_dt = datetime.strptime(et, "%Y-%m-%d %H:%M")
+                                    if end_dt < now:
+                                        late = True
                             except Exception:
                                 pass
                             # Color code for status
                             if status == 'done' and late:
-                                bg = TERRAN_CELL_DONE
-                                fg = 'black'
+                                bg = CALENDAR_CELL_DONE
+                                fg = '#222'
                             elif status == 'done':
                                 bg = "#4CAF50"
-                                fg = 'white'
+                                fg = '#fff'
                             elif late:
-                                bg = TERRAN_CELL_LATE
-                                fg = 'black'
+                                bg = CALENDAR_CELL_LATE
+                                fg = '#222'
                             else:
-                                bg = TERRAN_CELL_HIGHLIGHT
-                                fg = 'white'
-                            sched_lbl = tk.Label(cell, text=f"{task}\n{st[-5:]}-{et[-5:]}", font=('Orbitron', 10),
+                                bg = CALENDAR_CELL_TASK if entry_type == 'schedule' else CALENDAR_CELL_SERVICE
+                                fg = '#222'
+                            label_prefix = "Service:" if entry_type == 'repair' else "Task:"
+                            sched_lbl = tk.Label(cell, text=f"{label_prefix} {desc}\n{st[-5:] if len(st) >= 5 else st}",
+                                                 font=('Orbitron', 9),
                                                  bg=bg, fg=fg, bd=1, relief="ridge", wraplength=120, justify="center")
                             sched_lbl.pack(fill=tk.X, padx=1, pady=1)
-                            btns = tk.Frame(cell, bg=cell_bg)
-                            btns.pack(anchor='w', pady=1)
-                            if status != 'done':
-                                tk.Button(btns, text="✓", width=2, font=("Arial", 10, "bold"),
-                                          command=lambda s=sid, t=tab: self.mark_schedule_done(s, t)).pack(side=tk.LEFT,
-                                                                                                           padx=1)
-                            else:
-                                tk.Button(btns, text="Done", width=4, state='disabled').pack(side=tk.LEFT, padx=1)
-                            tk.Button(btns, text="✎", width=2,
-                                      command=lambda s=sid, t=tab: self.edit_schedule(s, t)).pack(side=tk.LEFT, padx=1)
-                            tk.Button(btns, text="🗑", width=2,
-                                      command=lambda s=sid, t=tab: self.delete_schedule_by_id(s, t)).pack(side=tk.LEFT,
-                                                                                                          padx=1)
+                            # Only show buttons for schedules, not repairs
+                            if entry_type == 'schedule':
+                                btns = tk.Frame(cell, bg=cell_bg)
+                                btns.pack(anchor='w', pady=1)
+                                if status != 'done':
+                                    tk.Button(btns, text="✓", width=2, font=("Arial", 10, "bold"),
+                                              bg="#b0b0b0", fg="#222",
+                                              command=lambda s=eid, t=tab: self.mark_schedule_done(s, t)).pack(
+                                        side=tk.LEFT, padx=1)
+                                else:
+                                    tk.Button(btns, text="Done", width=4, state='disabled', bg="#4CAF50",
+                                              fg="#fff").pack(side=tk.LEFT, padx=1)
+                                tk.Button(btns, text="✎", width=2, bg="#e0e0e0", fg="#222",
+                                          command=lambda s=eid, t=tab: self.edit_schedule(s, t)).pack(side=tk.LEFT,
+                                                                                                      padx=1)
+                                tk.Button(btns, text="🗑", width=2, bg="#e0e0e0", fg="#222",
+                                          command=lambda s=eid, t=tab: self.delete_schedule_by_id(s, t)).pack(
+                                    side=tk.LEFT, padx=1)
                 else:
                     tk.Label(cell, text="", width=12, bg=cell_bg).pack()
 
-        # Make the grid cells expand evenly
         for i in range(7):
             cal_frame.grid_columnconfigure(i, weight=1)
         for i in range(len(month_days) + 1):
@@ -575,16 +636,20 @@ class CosmicApp:
         r = cur.fetchone()
         win = tk.Toplevel(self.root)
         win.title("Repair Details")
+        # Corrected indices based on your schema:
+        # 0: id, 1: vehicle, 2: customer_name, 3: car_model, 4: vin, 5: issue, 6: status,
+        # 7: start_date, 8: assigned_mechanic, 9: priority, 10: estimated_hours, 11: estimated_cost, 12: end_date
         fields = [
             ("Customer:", r[2]),
             ("Vehicle:", r[1]),
+            ("Car Model:", r[3]),
             ("VIN:", r[4]),
             ("Issue:", r[5]),
-            ("Assigned Mechanic:", r[7]),
-            ("Priority:", r[8]),
-            ("Estimated Hours:", r[9]),
-            ("Estimated Cost:", r[10]),
-            ("Start Date:", r[11]),
+            ("Assigned Mechanic:", r[8]),
+            ("Priority:", r[9]),
+            ("Estimated Hours:", r[10]),
+            ("Estimated Cost:", r[11]),
+            ("Start Date:", r[7]),
             ("End Date:", r[12] or "Ongoing"),
             ("Status:", r[6])
         ]
@@ -601,36 +666,65 @@ class CosmicApp:
         rd = cur.fetchone()
         win = tk.Toplevel(self.root)
         win.title("Edit Repair Details")
+        # Corrected indices based on your schema:
+        # 8: assigned_mechanic, 9: priority, 10: estimated_hours
         fields = [
-            ('Assigned Mechanic:', 'assigned_mechanic', 'entry', rd[7]),
-            ('Priority:', 'priority', 'combo', ['Low', 'Medium', 'High'], rd[8]),
-            ('Estimated Hours:', 'hours', 'entry', rd[9])
+            ('Assigned Mechanic:', 'assigned_mechanic', 'entry', rd[8]),
+            ('Priority:', 'priority', 'combo', ['Low', 'Medium', 'High'], rd[9]),
+            ('Estimated Hours:', 'hours', 'entry', rd[10])
         ]
         entries = {}
         for i, (lbl, key, t, *rest) in enumerate(fields):
             ttk.Label(win, text=lbl).grid(row=i, column=0, padx=10, pady=5, sticky='e')
             if t == 'entry':
-                e = ttk.Entry(win);
-                e.insert(0, rest[0]);
+                e = ttk.Entry(win)
+                e.insert(0, rest[0])
                 e.grid(row=i, column=1, padx=10, pady=5)
                 entries[key] = e
             else:
-                c = ttk.Combobox(win, values=rest[0]);
-                c.set(rest[1]);
+                c = ttk.Combobox(win, values=rest[0])
+                c.set(rest[1])
                 c.grid(row=i, column=1, padx=10, pady=5)
                 entries[key] = c
 
         def save():
+            # Validate hours as a float
+            try:
+                hours_val = float(entries['hours'].get())
+            except ValueError:
+                messagebox.showerror("Error", "Estimated Hours must be a number.")
+                return
+            cur.execute('''UPDATE repairs SET
+                            assigned_mechanic=?, priority=?, estimated_hours=?
+                            WHERE vehicle=?''', (
+                entries['assigned_mechanic'].get(),
+                entries['priority'].get(),
+                hours_val,
+                vehicle
+            ))
+            self.conn.commit()
+            self.update_repairs_display()
+            win.destroy()
+
+        ttk.Button(win, text="Save Changes", command=save).grid(row=len(fields), columnspan=2, pady=10)
+
+        def save():
+            # Validate hours as a float
+            try:
+                hours_val = float(entries['hours'].get())
+            except ValueError:
+                messagebox.showerror("Error", "Estimated Hours must be a number.")
+                return
             cur.execute('''UPDATE repairs SET
                            assigned_mechanic=?, priority=?, estimated_hours=?
                            WHERE vehicle=?''', (
                 entries['assigned_mechanic'].get(),
                 entries['priority'].get(),
-                float(entries['hours'].get() or 0),
+                hours_val,
                 vehicle
             ))
-            self.conn.commit();
-            self.update_repairs_display();
+            self.conn.commit()
+            self.update_repairs_display()
             win.destroy()
 
         ttk.Button(win, text="Save Changes", command=save).grid(row=len(fields), columnspan=2, pady=10)
