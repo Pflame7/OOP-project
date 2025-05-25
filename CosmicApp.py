@@ -54,12 +54,12 @@ def add_custom_titlebar(window, title="Terran Garage Manager", exit_callback=Non
 
 class CosmicApp:
     def __init__(self, root, user_role, mechanic_name=None, terran_style=True):
-        add_custom_titlebar(root, "Terran Garage Manager", exit_callback=root.quit)
+        add_custom_titlebar(root, "Garage Manager", exit_callback=root.quit)
         self.root = root
         self.user_role = user_role
         self.mechanic_name = mechanic_name
         self.terran_style = terran_style
-        self.root.title("Terran Garage Manager")
+        self.root.title("Garage Manager")
         self.root.state('zoomed')
         self.style = ttk.Style(theme='cyborg')
         self.conn = sqlite3.connect('cosmic_garage.db')
