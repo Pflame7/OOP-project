@@ -7,6 +7,7 @@ from ttkbootstrap.constants import *
 import datetime
 
 # Brighter Terran color palette
+TERRAN_TEXT2 = 	"#FFFFFF"
 TERRAN_BG = "#22304a"
 TERRAN_ACCENT = "#4a6fa5"
 TERRAN_HIGHLIGHT = "#00cfff"
@@ -130,7 +131,7 @@ class CosmicApp:
         for label, key in entries:
             frame = ttk.Frame(form_frame)
             frame.pack(pady=10, fill=tk.X)
-            ttk.Label(frame, text=label, width=15, background=TERRAN_BG, foreground=TERRAN_TEXT).pack(side=tk.LEFT, padx=10)
+            ttk.Label(frame, text=label, width=15, background=TERRAN_BG, foreground=TERRAN_TEXT2).pack(side=tk.LEFT, padx=10)
             entry = ttk.Entry(frame, width=30)
             entry.pack(side=tk.RIGHT, expand=True, fill=tk.X, padx=10)
             self.customer_entries[key] = entry
