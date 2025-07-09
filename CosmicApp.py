@@ -60,6 +60,7 @@ class CosmicApp:
         self.user_role = user_role
         self.mechanic_name = mechanic_name
         self.terran_style = terran_style
+        self.current_theme = "dark" if self.terran_style else "light"
         self.root.title("Garage Manager")
         self.root.state('zoomed')
         self.style = ttk.Style(theme='cyborg')
@@ -82,6 +83,77 @@ class CosmicApp:
         self.style.configure('Treeview', font=('Orbitron', 14), rowheight=35)
         self.style.configure('TEntry', font=('Orbitron', 14))
 
+    def apply_bg_recursive(self, widget, bg):
+        try:
+            widget.configure(bg=bg)
+        except:
+            pass
+        for child in widget.winfo_children():
+            self.apply_bg_recursive(child, bg)
+
+    def toggle_theme(self):
+        if self.current_theme == "dark":
+            self.current_theme = "light"
+            self.terran_style = False
+            self.root.configure(bg="white")
+            self.style.theme_use('flatly')
+            self.apply_bg_recursive(self.root, "white")
+            self.theme_btn.config(text="🌙")
+        else:
+            self.current_theme = "dark"
+            self.terran_style = True
+            self.root.configure(bg=TERRAN_BG)
+            self.style.theme_use('cyborg')
+            self.apply_bg_recursive(self.root, TERRAN_BG)
+            self.theme_btn.config(text="☀️")
+
+        self._configure_styles()
+
+    def _configure_styles(self):
+        self.style.configure('.', font=('Orbitron', 14))
+        self.style.configure('TButton', font=('Orbitron', 14))
+        self.style.configure('Treeview.Heading', font=('Orbitron', 16, 'bold'))
+        self.style.configure('Treeview', font=('Orbitron', 14), rowheight=35)
+        self.style.configure('TEntry', font=('Orbitron', 14))
+
+        if self.current_theme == "dark":
+            self.style.configure('Header.TLabel',
+                                 font=('Orbitron', 28, 'bold'),
+                                 background=TERRAN_ACCENT,
+                                 foreground=TERRAN_TEXT2)
+
+            self.style.configure('TLabel',
+                                 background=TERRAN_BG,
+                                 foreground=TERRAN_TEXT2)
+
+            self.style.configure('TLabelframe',
+                                 background=TERRAN_BG,
+                                 foreground=TERRAN_TEXT2,
+                                 bordercolor=TERRAN_HIGHLIGHT)
+
+            self.style.configure('TLabelframe.Label',
+                                 background=TERRAN_BG,
+                                 foreground=TERRAN_TEXT2)
+
+        else:  # светла тема
+            self.style.configure('Header.TLabel',
+                                 font=('Orbitron', 28, 'bold'),
+                                 background="#f0f0f0",
+                                 foreground="#222")
+
+            self.style.configure('TLabel',
+                                 background="white",
+                                 foreground="#222")
+
+            self.style.configure('TLabelframe',
+                                 background="white",
+                                 foreground="#222",
+                                 bordercolor="gray")
+
+            self.style.configure('TLabelframe.Label',
+                                 background="white",
+                                 foreground="#222")
+
     def create_widgets(self):
         self.header = ttk.Label(
             self.root,
@@ -89,6 +161,12 @@ class CosmicApp:
             style='Header.TLabel'
         )
         self.header.pack(pady=(30, 10), fill='x')
+        self.theme_btn = ttk.Button(
+            self.root,
+            text="🌙",  # или "Toggle Theme"
+            command=self.toggle_theme
+        )
+        self.theme_btn.pack(pady=(0, 10))
 
         if self.user_role == 'mechanic' and self.mechanic_name:
             ttk.Label(
@@ -221,6 +299,10 @@ class CosmicApp:
     def add_schedule(self, mechanic, tab=None):
         win = tk.Toplevel(self.root)
         win.title("Add Schedule")
+        if self.terran_style:
+            win.configure(bg=TERRAN_BG)
+        else:
+            win.configure(bg="white")
 
         tk.Label(win, text="Task:").grid(row=0, column=0, padx=10, pady=5, sticky='e')
         task_entry = tk.Entry(win)
@@ -493,6 +575,10 @@ class CosmicApp:
     def add_part_dialog(self):
         win = tk.Toplevel(self.root)
         win.title("Add New Part")
+        if self.terran_style:
+            win.configure(bg=TERRAN_BG)
+        else:
+            win.configure(bg="white")
 
         ttk.Label(win, text="Part Name:").grid(row=0, column=0, padx=10, pady=5, sticky='e')
         name_entry = ttk.Entry(win)
@@ -593,6 +679,10 @@ class CosmicApp:
     def add_mechanic(self):
         win = tk.Toplevel(self.root)
         win.title("Add Mechanic")
+        if self.terran_style:
+            win.configure(bg=TERRAN_BG)
+        else:
+            win.configure(bg="white")
 
         ttk.Label(win, text="Full Name:").grid(row=0, column=0, padx=5, pady=5)
         full_name = ttk.Entry(win)
@@ -637,6 +727,10 @@ class CosmicApp:
         r = cur.fetchone()
         win = tk.Toplevel(self.root)
         win.title("Repair Details")
+        if self.terran_style:
+            win.configure(bg=TERRAN_BG)
+        else:
+            win.configure(bg="white")
         # Corrected indices based on your schema:
         # 0: id, 1: vehicle, 2: customer_name, 3: car_model, 4: vin, 5: issue, 6: status,
         # 7: start_date, 8: assigned_mechanic, 9: priority, 10: estimated_hours, 11: estimated_cost, 12: end_date
@@ -667,6 +761,10 @@ class CosmicApp:
         rd = cur.fetchone()
         win = tk.Toplevel(self.root)
         win.title("Edit Repair Details")
+        if self.terran_style:
+            win.configure(bg=TERRAN_BG)
+        else:
+            win.configure(bg="white")
         # Corrected indices based on your schema:
         # 8: assigned_mechanic, 9: priority, 10: estimated_hours
         fields = [
@@ -739,6 +837,10 @@ class CosmicApp:
         text = cur.fetchone()[0]
         win = tk.Toplevel(self.root);
         win.title("Repair Notes")
+        if self.terran_style:
+            win.configure(bg=TERRAN_BG)
+        else:
+            win.configure(bg="white")
         ttk.Label(win, text="Detailed Repair Notes:").pack(pady=10)
         ta = tk.Text(win, width=60, height=15, font=('Orbitron', 14));
         ta.insert('1.0', text);

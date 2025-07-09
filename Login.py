@@ -20,6 +20,7 @@ class LoginWindow:
         self.master = master
         self.on_login = on_login
         self.terran_style = terran_style
+        self.current_theme = "dark" if self.terran_style else "light"
         self.master.geometry("620x520")
         self.style = ttk.Style(theme='cyborg')
         if terran_style:
@@ -75,6 +76,83 @@ class LoginWindow:
             pass
         os._exit(0)  # Guaranteed exit
 
+    def toggle_theme(self):
+        if self.current_theme == "dark":
+            # Смяна към светла тема
+            self.current_theme = "light"
+            self.terran_style = False
+            self.style.theme_use('flatly')
+            self.master.configure(bg="white")
+        else:
+            # Смяна към тъмна тема — всичко се връща!
+            self.current_theme = "dark"
+            self.terran_style = True
+            self.style.theme_use('cyborg')  # Темата е тъмна
+            self.master.configure(bg=TERRAN_BG)  # Фон на прозореца
+
+        # Смени и иконата на бутона
+        self.theme_btn.config(text="☀️" if self.current_theme == "dark" else "🌙")
+
+        # Върни стиловете и цветовете според темата
+        self._configure_styles()
+
+        # Само за тъмна тема – наложи фона на всички widgets
+        if self.current_theme == "dark":
+            self.apply_bg_recursive(self.master, TERRAN_BG)
+
+    def _configure_styles(self):
+        self.style.configure('.', font=('Orbitron', 14))
+        self.style.configure('TButton', font=('Orbitron', 14))
+        self.style.configure('Treeview.Heading', font=('Orbitron', 16, 'bold'))
+        self.style.configure('Treeview', font=('Orbitron', 14), rowheight=35)
+        self.style.configure('TEntry', font=('Orbitron', 14))
+
+        if self.current_theme == "dark":
+            self.style.configure('Header.TLabel',
+                                 font=('Orbitron', 28, 'bold'),
+                                 background=TERRAN_ACCENT,
+                                 foreground=TERRAN_TEXT2)
+
+            self.style.configure('TLabel',
+                                 background=TERRAN_BG,
+                                 foreground=TERRAN_TEXT2)
+
+            self.style.configure('TLabelframe',
+                                 background=TERRAN_BG,
+                                 foreground=TERRAN_TEXT2,
+                                 bordercolor=TERRAN_HIGHLIGHT)
+
+            self.style.configure('TLabelframe.Label',
+                                 background=TERRAN_BG,
+                                 foreground=TERRAN_TEXT2)
+
+        else:  # светла тема
+            self.style.configure('Header.TLabel',
+                                 font=('Orbitron', 28, 'bold'),
+                                 background="#f0f0f0",
+                                 foreground="#222")
+
+            self.style.configure('TLabel',
+                                 background="white",
+                                 foreground="#222")
+
+            self.style.configure('TLabelframe',
+                                 background="white",
+                                 foreground="#222",
+                                 bordercolor="gray")
+
+            self.style.configure('TLabelframe.Label',
+                                 background="white",
+                                 foreground="#222")
+
+    def apply_bg_recursive(self, widget, bg):
+        try:
+            widget.configure(bg=bg)
+        except:
+            pass
+        for child in widget.winfo_children():
+            self.apply_bg_recursive(child, bg)
+
     def _create_widgets(self):
         # Spacer between titlebar and login frame
         spacer = tk.Frame(self.master, height=36, bg=TERRAN_BG)  # Match background
@@ -86,6 +164,12 @@ class LoginWindow:
             borderwidth=3,
             relief="groove"
         )
+        self.theme_btn = ttk.Button(
+            self.master,
+            text="🌙",  # или "Toggle Theme"
+            command=self.toggle_theme
+        )
+        self.theme_btn.pack(pady=(0, 10))
         login_frame.pack(pady=(0, 10), padx=10)  # More vertical space and horizontal margin
 
         self.style.configure("TLabelframe", background=TERRAN_ACCENT, foreground=TERRAN_TEXT,
