@@ -221,6 +221,11 @@ class LoginWindow:
                     cursor.execute('SELECT * FROM users WHERE username=? AND password=? AND role="admin"', (username, password))
                     user = cursor.fetchone()
                     if user:
+                        cursor.execute('''
+                            INSERT INTO login_logs (username, role, login_time)
+                            VALUES (?, ?, datetime('now'))
+                        ''', (username, user_type))
+                        conn.commit()
                         self.master.destroy()
                         if self.on_login:
                             self.on_login(user_role='admin')
@@ -230,6 +235,11 @@ class LoginWindow:
                     cursor.execute('SELECT * FROM users WHERE username=? AND password=? AND role="mechanic"', (username, password))
                     user = cursor.fetchone()
                     if user:
+                        cursor.execute('''
+                            INSERT INTO login_logs (username, role, login_time)
+                            VALUES (?, ?, datetime('now'))
+                        ''', (username, user_type))
+                        conn.commit()
                         self.master.destroy()
                         if self.on_login:
                             self.on_login(user_role='mechanic', mechanic_name=user[4])

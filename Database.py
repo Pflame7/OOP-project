@@ -72,6 +72,14 @@ def create_database(db_path='cosmic_garage.db'):
             status TEXT NOT NULL DEFAULT 'pending'
         )
     ''')
+    cursor.execute('''
+           CREATE TABLE IF NOT EXISTS login_logs (
+               id INTEGER PRIMARY KEY AUTOINCREMENT,
+               username TEXT,
+               role TEXT,
+               login_time TEXT
+           )
+       ''')
 
     # Insert default admin if not exists
     cursor.execute('SELECT * FROM users WHERE role="admin"')

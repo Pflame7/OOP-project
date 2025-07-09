@@ -187,6 +187,7 @@ class CosmicApp:
         if self.user_role == 'admin':
             self._create_mechanics_tab()
             self._create_schedule_tab()
+            self._create_login_logs_tab()
         elif self.user_role == 'mechanic':
             self._create_my_schedule_tab()
 
@@ -907,6 +908,32 @@ class CosmicApp:
                 messagebox.showerror("Error", str(e))
 
         ttk.Button(order_window, text="Confirm Order", command=confirm_order).grid(row=2, columnspan=2, pady=10)
+
+    def _create_login_logs_tab(self):
+        tab = ttk.Frame(self.notebook)
+        self.notebook.add(tab, text="Login Logs")
+
+        self.logs_tree = ttk.Treeview(
+            tab,
+            columns=("Username", "Role", "Login Time"),
+            show='headings'
+        )
+        self.logs_tree.heading("Username", text="Username")
+        self.logs_tree.heading("Role", text="Role")
+        self.logs_tree.heading("Login Time", text="Login Time")
+
+        self.logs_tree.pack(fill=tk.BOTH, expand=True, padx=20, pady=20)
+
+        self.update_login_logs()
+
+    def update_login_logs(self):
+        for row in self.logs_tree.get_children():
+            self.logs_tree.delete(row)
+
+        cursor = self.conn.cursor()
+        cursor.execute('SELECT username, role, login_time FROM login_logs ORDER BY login_time DESC')
+        for username, role, login_time in cursor.fetchall():
+            self.logs_tree.insert('', 'end', values=(username, role, login_time))
 
     def __del__(self):
         self.conn.close()
