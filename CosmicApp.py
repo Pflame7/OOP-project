@@ -293,6 +293,69 @@ class CosmicApp:
         btn_frame = ttk.Frame(tab)
         btn_frame.pack(pady=10)
         ttk.Button(btn_frame, text="Add Schedule", command=self.open_add_schedule_dialog).pack(side=tk.LEFT, padx=5)
+        ttk.Button(btn_frame, text="Export Monthly Report", command=self.export_mechanic_report_csv).pack(side=tk.LEFT,
+                                                                                                          padx=5)
+
+    def export_mechanic_report_csv(self):
+        import csv
+        from datetime import datetime
+        from tkinter import filedialog
+
+        mechanic = self.selected_mechanic.get() if hasattr(self, 'selected_mechanic') else None
+        if not mechanic:
+            messagebox.showerror("Error", "Please select a mechanic.")
+            return
+
+        # Вземи текущия месец и година от календара
+        year = self.cal_year
+        month = self.cal_month
+
+        # Определи началото и края на месеца
+        first_day = datetime(year, month, 1).date()
+        if month == 12:
+            next_month = datetime(year + 1, 1, 1).date()
+        else:
+            next_month = datetime(year, month + 1, 1).date()
+
+        # Извлечи данни от repairs
+        cursor = self.conn.cursor()
+        cursor.execute('''
+            SELECT vehicle, car_model, vin, issue, estimated_hours, estimated_cost, start_date, end_date
+            FROM repairs
+            WHERE assigned_mechanic = ?
+              AND date(start_date) >= ? AND date(start_date) < ?
+        ''', (mechanic, first_day.isoformat(), next_month.isoformat()))
+        rows = cursor.fetchall()
+
+        if not rows:
+            messagebox.showinfo("No Data", f"No repairs found for {mechanic} in {month:02d}/{year}.")
+            return
+
+        # Покажи "Save As" диалог
+        default_filename = f"repair_report_{mechanic.replace(' ', '_')}_{year}_{month:02d}.csv"
+        filepath = filedialog.asksaveasfilename(
+            defaultextension=".csv",
+            filetypes=[("CSV files", "*.csv")],
+            initialfile=default_filename,
+            title="Save Repair Report"
+        )
+
+        if not filepath:
+            return  # Потребителят е натиснал Cancel
+
+        # Запиши в CSV
+        try:
+            with open(filepath, "w", newline='', encoding='utf-8') as f:
+                writer = csv.writer(f)
+                writer.writerow(
+                    ["Vehicle", "Car Model", "VIN", "Issue", "Estimated Hours", "Estimated Cost", "Start Date",
+                     "End Date"])
+                for row in rows:
+                    writer.writerow(row)
+
+            messagebox.showinfo("Success", f"Report saved to:\n{filepath}")
+        except Exception as e:
+            messagebox.showerror("Error", f"Failed to save report:\n{e}")
 
     def open_add_schedule_dialog(self):
         self.add_schedule(mechanic=self.selected_mechanic.get())
